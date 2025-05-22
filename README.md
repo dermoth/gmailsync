@@ -1,5 +1,12 @@
 # Gmail Sync Tool
 
+> [!CAUTION]
+> Google changed their API limits and I could not find an obvious backoff
+> setting that avoid triggering them. The code do not support detecting and
+> recovering from failed requests due to limit breaches. You could try
+> something very low but it will take forever to sync.
+> You have been warned!
+
 This tool synchronizes Gmail metadata into a MariaDB/InnoDB database to allow
 further analysis.
 
