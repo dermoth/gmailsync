@@ -252,7 +252,7 @@ class SqlClient:
         """Get email_id from database for 'email', inserting it as needed
         """
         if '@' in addr:
-            user, domain = addr.split('@')
+            user, domain = addr.rsplit('@', 1)
         else:
             user, domain = addr, ''
 
