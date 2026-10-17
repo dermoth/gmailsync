@@ -26,7 +26,7 @@ import getpass
 import json
 from pathlib import Path
 from email.utils import getaddresses
-from collections.abc import Generator, Iterable, Iterator,Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from typing import Literal, Optional
 #from typing import List, Optional
 
@@ -112,7 +112,7 @@ class MessagesSenders(Base):
 
     message_id: Mapped[str] = mapped_column(ForeignKey('messages.id'), primary_key=True)
     sender_id: Mapped[int] = mapped_column(ForeignKey('addresses.id'), primary_key=True)
-    # Per the FRC is there is more than one From addr there MUST be one Sender
+    # Per the RFC if there is more than one From addr there MUST be one Sender
     type: Mapped[Literal['from', 'sender', 'none']] = mapped_column(
         Enum('from', 'sender', 'none'),
         primary_key=True,
@@ -161,16 +161,16 @@ class GmailClient:
             stat = os.fstat(fhd.fileno())
             if stat.st_uid != os.getuid() or stat.st_mode & 0o077:
                 print(f'ERROR: Unsafe file permissions for {self.CLIENT}.',
-                       file=sys.stderr)
+                      file=sys.stderr)
                 sys.exit(1)
             client = json.load(fhd)
 
         print("""
         Authenticating to Gmail...
 
-        1. Click on the link and get the token from the OAuth page
+        1. Click on the link and get the authorization code from the OAuth page
 
-        2. Enter the authorization key in the prompt below
+        2. Enter the authorization code in the prompt below
         """)
 
         #os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
@@ -184,7 +184,7 @@ class GmailClient:
         authcode = getpass.getpass('Authorization code: ')
         flow.fetch_token(code=authcode)
         self.service = build('gmail', 'v1', credentials=flow.credentials)
-        self.userid=userid
+        self.userid = userid
 
     def _yield_msglist_batch(self, messages, batchsz=100):
         req = messages.list(userId=self.userid, maxResults=batchsz)
@@ -199,7 +199,7 @@ class GmailClient:
             lst = resp.get('messages', [])
 
     def get_labels(self) -> list[dict[str, str]]:
-        """Return all labels for inbox
+        """Return all labels for the mailbox
         """
         # pylint: disable=no-member
         res = self.service.users().labels().list(userId=self.userid).execute()
@@ -300,10 +300,10 @@ class SqlClient:
         sender_id = SqlClient.getemailid(sess, sender_n, sender_a)
 
         yield {
-                'message_id': msg_id,
-                'sender_id': sender_id,
-                'type': sender_type,
-                'primary': True,
+            'message_id': msg_id,
+            'sender_id': sender_id,
+            'type': sender_type,
+            'primary': True,
         }
         uniq.add((sender_n, sender_a, sender_type))
 
@@ -349,7 +349,7 @@ class SqlClient:
         labelsmaps: list[dict[str, str]],
         sendersmaps: list[dict[str, str | bool]],
         receiversmaps: list[dict[str, str]],
-    ):  # pylint: disable=too-many-arguments # meeds refactor...
+    ):  # pylint: disable=too-many-arguments,too-many-positional-arguments # needs refactor...
         msg_id = msg['id']
 
         msgmaps.append({
@@ -399,7 +399,7 @@ class SqlClient:
                     sess.execute(insert(MessagesReceivers).values(receiversmaps))
 
     def removemsg_batched(self, msgids: Iterable[str]):
-        """Remove a batch of messages into the database
+        """Remove a batch of messages from the database
         """
         with Session(self.engine, autobegin=False) as sess:
             with sess.begin():

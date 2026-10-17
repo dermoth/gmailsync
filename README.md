@@ -41,7 +41,7 @@ the moment.
 4. Follow Google account setup instructions in `gmailsync.py` (in the process
    you should create a file called `gmailsync_client.json`)
 
-4. Run `./gmailsync.py`
+5. Run `./gmailsync.py`
 
 ## Sample queries
 
