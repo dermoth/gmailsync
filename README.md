@@ -1,11 +1,14 @@
 # Gmail Sync Tool
 
 > [!CAUTION]
-> Google changed their API limits and I could not find an obvious backoff
-> setting that avoid triggering them. The code do not support detecting and
-> recovering from failed requests due to limit breaches. You could try
-> something very low but it will take forever to sync.
-> You have been warned!
+> Google keeps tightening the Gmail API limits. Since May 2026 new projects
+> get 6,000 quota units per user per minute and `messages.get` costs 20
+> units, so a sync cannot exceed about 300 messages per minute (see
+> [Usage limits][quota]). The code does not yet detect and recover from
+> failed requests due to limit breaches, so a sync may abort and need to be
+> restarted. You have been warned!
+
+[quota]: https://developers.google.com/workspace/gmail/api/reference/quota
 
 This tool synchronizes Gmail metadata into a MariaDB/InnoDB database to allow
 further analysis.
@@ -38,10 +41,24 @@ the moment.
 
 3. Update DB credentials in `gmailsync.py` (TODO: move config to separate file)
 
-4. Follow Google account setup instructions in `gmailsync.py` (in the process
-   you should create a file called `gmailsync_client.json`)
+4. Create an OAuth client in the [Google Cloud Console][console]:
 
-5. Run `./gmailsync.py`
+   1. Create a project and enable the Gmail API for it.
+   2. Configure the OAuth consent screen (Google Auth Platform) with the
+      External audience, leave the app in Testing status and add your Gmail
+      account as a test user. The app is meant for personal use and never
+      needs to be published or verified.
+   3. Create an OAuth client ID of type "Desktop app" and download its JSON
+      file right away: the client secret is only shown at creation (a new
+      one can be added later if it is lost). Note that Google deletes
+      clients unused for six months.
+   4. Save the file as `gmailsync_client.json` next to `gmailsync.py`,
+      readable only by you (`chmod 600 gmailsync_client.json`).
+
+5. Run `./gmailsync.py`, open the printed link, authorize the app and paste
+   the authorization code at the prompt.
+
+[console]: https://console.cloud.google.com/
 
 ## Sample queries
 
