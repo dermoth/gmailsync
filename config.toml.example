@@ -1,0 +1,4 @@
+# Sample config
+
+[sql]
+engine = 'mariadb+mariadbconnector://<USERNAME>:<PASSWORD>@<HOSTNAME>/<DATABASE>'

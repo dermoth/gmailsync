@@ -168,7 +168,7 @@ class GmailClient:
         print("""
         Authenticating to Gmail...
 
-        1. Click on the link and get the token form the OAuth page
+        1. Click on the link and get the token from the OAuth page
 
         2. Enter the authorization key in the prompt below
         """)

@@ -15,16 +15,26 @@ the moment.
 
 ## Setup
 
-1. Create a virtualenv and add install requirements
+1. Create a virtualenv and add install requirements. This requires Python
+   3.11 or later, and the `mariadb` module needs the Python headers and
+   MariaDB Connector/C to build (`python3-dev` and `libmariadb-dev` on
+   Debian/Ubuntu).
 
    ```sh
    python -mvenv venv
+   echo '*' >venv/.gitignore
    . venv/bin/activate
    pip install -U pip setuptools
    pip install -r requirements.txt
    ```
 
-2. Create a database
+2. Create a database, ex:
+
+   ```sql
+   CREATE DATABASE `gmail` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+   GRANT USAGE ON *.* TO `gsync`@`%` IDENTIFIED BY '<PASSWORD>';
+   GRANT ALL PRIVILEGES ON `gmail`.* TO `gsync`@`%`;
+   ```
 
 3. Update DB credentials in `gmailsync.py` (TODO: move config to separate file)
 
