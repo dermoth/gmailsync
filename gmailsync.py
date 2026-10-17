@@ -59,7 +59,7 @@ class AddressUsers(Base):
 
     id: Mapped[int] = mapped_column(ForeignKey('addresses.id'), primary_key=True)
     # Considering the MAIL FROM/RCPT TO 255 length limit
-    user: Mapped[str] = mapped_column(VARCHAR(253, charset='ascii'), index=True)
+    user: Mapped[str] = mapped_column(VARCHAR(253), index=True)
     address: Mapped["Addresses"] = relationship()
 
 class AddressDomains(Base):
@@ -68,7 +68,7 @@ class AddressDomains(Base):
 
     id: Mapped[int] = mapped_column(ForeignKey('addresses.id'), primary_key=True)
     # Considering the MAIL FROM/RCPT TO 255 length limit
-    domain: Mapped[str] = mapped_column(VARCHAR(253, charset='ascii'), index=True)
+    domain: Mapped[str] = mapped_column(VARCHAR(253), index=True)
     address: Mapped["Addresses"] = relationship()
 
 class AddressNames(Base):
@@ -251,9 +251,6 @@ class SqlClient:
     def getemailid(sess, name: str, addr: str) -> str:
         """Get email_id from database for 'email', inserting it as needed
         """
-        # Need to review RFCs here, for now allow only ascii
-        # In any case unexpected data should be ignored/replaced
-        addr = addr.encode('ascii', errors='replace').decode('ascii')
         if '@' in addr:
             user, domain = addr.split('@')
         else:
