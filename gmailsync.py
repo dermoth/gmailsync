@@ -24,6 +24,7 @@ import os
 import time
 import getpass
 import json
+import tomllib
 from pathlib import Path
 from email.utils import getaddresses
 from collections.abc import Iterable, Iterator, Mapping
@@ -232,10 +233,8 @@ class GmailClient:
 
 class SqlClient:
     """MariaDB Client"""
-    ENGINE = 'mariadb+mariadbconnector://<USERNAME>:<PASSWORD>@<HOSTNAME>/<DATABASE>'
-
-    def __init__(self):
-        self.engine = create_engine(self.ENGINE)
+    def __init__(self, url: str):
+        self.engine = create_engine(url)
         # Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
 
@@ -484,7 +483,12 @@ class BatchProcessor:
 
 def main():
     """main"""
-    backend = SqlClient()
+    config = Path(__file__).with_name('config.toml')
+    if not config.exists():
+        print(f'Please copy `{config.name}.example\' to `{config.name}\' and edit it.')
+        sys.exit(1)
+    with config.open('rb') as fhd:
+        backend = SqlClient(tomllib.load(fhd)['sql']['engine'])
     print('*** Getting loaded message IDs...')
     msgids = backend.get_msgids()
 

@@ -39,7 +39,7 @@ the moment.
    GRANT ALL PRIVILEGES ON `gmail`.* TO `gsync`@`%`;
    ```
 
-3. Update DB credentials in `gmailsync.py` (TODO: move config to separate file)
+3. Copy `config.toml.example` to `config.toml` and set the database URL
 
 4. Create an OAuth client in the [Google Cloud Console][console]:
 
