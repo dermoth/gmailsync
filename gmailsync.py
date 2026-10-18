@@ -200,16 +200,18 @@ class GmailClient:
     # Optional `export GMAILSYNC_TOKEN=...' command saved after authentication
     TOKEN = SCRIPT.with_name('gmailsync_token.sh')
     SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-    # Stay below the 6000 units per user per minute quota; Google recommends
-    # batches of no more than 50 requests.
+    # Default quota units spent per minute (config.toml: gmail.quota_per_minute),
+    # below Gmail's 6000 units per user per minute limit, see:
+    # https://developers.google.com/workspace/gmail/api/reference/quota
+    # Google recommends batches of no more than 50 requests.
     QUOTA_PER_MIN = 5000
     BATCH_SIZE = 50
     # Attempts for messages failing on their own (not rate limits or whole batch errors)
     MAX_ATTEMPTS = 8
 
-    def __init__(self, userid: str = 'me'):
+    def __init__(self, quota_per_min: int = QUOTA_PER_MIN, userid: str = 'me'):
         self.userid = userid
-        self.throttle = Throttle(self.QUOTA_PER_MIN, self.BATCH_SIZE * COST_GET)
+        self.throttle = Throttle(quota_per_min, self.BATCH_SIZE * COST_GET)
 
         # An access token can be reused (without refresh) until it expires
         token = os.environ.get('GMAILSYNC_TOKEN')
@@ -585,16 +587,17 @@ class SqlClient:
 
 def main():
     """main"""
-    config = Path(__file__).with_name('config.toml')
-    if not config.exists():
-        print(f'Please copy `{config.name}.example\' to `{config.name}\' and edit it.')
+    cfgfile = Path(__file__).with_name('config.toml')
+    if not cfgfile.exists():
+        print(f'Please copy `{cfgfile.name}.example\' to `{cfgfile.name}\' and edit it.')
         sys.exit(1)
-    with config.open('rb') as fhd:
-        backend = SqlClient(tomllib.load(fhd)['sql']['engine'])
+    with cfgfile.open('rb') as fhd:
+        config = tomllib.load(fhd)
+    backend = SqlClient(config['sql']['engine'])
     print('*** Getting loaded message IDs...')
     msgids = backend.get_msgids()
 
-    client = GmailClient()
+    client = GmailClient(config.get('gmail', {}).get('quota_per_minute', GmailClient.QUOTA_PER_MIN))
     print('*** Updating labels...')
     backend.update_labels(client.get_labels())
 

@@ -2,3 +2,10 @@
 
 [sql]
 engine = 'mariadb+mariadbconnector://<USERNAME>:<PASSWORD>@<HOSTNAME>/<DATABASE>'
+
+[gmail]
+# Quota units spent per minute (default 5000). Gmail allows 6000 units per
+# user per minute and messages.get costs 20 units; requests beyond the limit
+# are retried with backoff. See:
+# https://developers.google.com/workspace/gmail/api/reference/quota
+#quota_per_minute = 5000
