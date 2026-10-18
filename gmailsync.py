@@ -302,21 +302,23 @@ class SqlClient:
             'type': sender_type,
             'primary': True,
         }
-        uniq.add((sender_n, sender_a, sender_type))
+        # Dedup on address ids, as the database collation can match different
+        # strings (case, accents...) to the same address
+        uniq.add((sender_id, sender_type))
 
         stuples = tuple(((i, 'from') for i in h_from))
         stuples += tuple(((i, 'sender') for i in h_sender))
         for (sname, saddr), stype in stuples:
-            if (sname, saddr, stype) in uniq:
-                continue
             sid = SqlClient.getemailid(sess, sname, saddr)
+            if (sid, stype) in uniq:
+                continue
             yield {
                 'message_id': msg_id,
                 'sender_id': sid,
                 'type': stype,
                 'primary': False,
             }
-            uniq.add((sname, saddr, stype))
+            uniq.add((sid, stype))
 
     @staticmethod
     def _insert_receivers(sess, msg_id: str, headers: str) -> Iterator[dict[str, str]]:
@@ -328,15 +330,15 @@ class SqlClient:
         rtuples += tuple(((i, 'cc') for i in h_cc))
 
         for (rname, raddr), rtype in rtuples:
-            if (rname, raddr, rtype) in uniq:
-                continue
             rid = SqlClient.getemailid(sess, rname, raddr)
+            if (rid, rtype) in uniq:
+                continue
             yield {
                 'message_id': msg_id,
                 'receiver_id': rid,
                 'type': rtype,
             }
-            uniq.add((rname, raddr, rtype))
+            uniq.add((rid, rtype))
 
     @staticmethod
     def _insertmsg(
