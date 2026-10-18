@@ -1,12 +1,14 @@
 # Gmail Sync Tool
 
-> [!CAUTION]
+> [!NOTE]
 > Google keeps tightening the Gmail API limits. Since May 2026 new projects
 > get 6,000 quota units per user per minute and `messages.get` costs 20
 > units, so a sync cannot exceed about 300 messages per minute (see
-> [Usage limits][quota]). The code does not yet detect and recover from
-> failed requests due to limit breaches, so a sync may abort and need to be
-> restarted. You have been warned!
+> [Usage limits][quota]). `gmailsync.py` paces its requests to 5,000 units
+> per minute (about 250 messages) and retries rate limited or failed
+> requests with exponential backoff, so a large mailbox takes hours but
+> should complete in a single run. An interrupted sync resumes where it
+> stopped.
 
 [quota]: https://developers.google.com/workspace/gmail/api/reference/quota
 
