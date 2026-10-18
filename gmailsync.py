@@ -234,7 +234,9 @@ class GmailClient:
 class SqlClient:
     """MariaDB Client"""
     def __init__(self, url: str):
-        self.engine = create_engine(url)
+        # Pre-ping replaces pooled connections dropped while idle (ex. during
+        # authentication or backoff)
+        self.engine = create_engine(url, pool_pre_ping=True)
         # Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
 
