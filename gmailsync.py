@@ -25,6 +25,7 @@ import time
 import getpass
 import json
 import random
+import shlex
 import tomllib
 from pathlib import Path
 from email.utils import getaddresses
@@ -34,7 +35,8 @@ from collections.abc import Iterable, Iterator, Mapping
 from typing import Literal, Optional
 #from typing import List, Optional
 
-from google.auth.exceptions import TransportError
+from google.auth.exceptions import RefreshError, TransportError
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import BatchError, HttpError
@@ -150,6 +152,7 @@ class MessagesLabels(Base):
 COST_GET = 20
 COST_LIST = 5
 COST_LABELS = 1
+COST_PROFILE = 1
 
 # Transient network failures, including token refreshes (TransportError)
 NETWORK_ERRORS = (OSError, HTTPException, HttpLib2Error, TransportError)
@@ -194,7 +197,8 @@ class GmailClient:
     """Gmail Client"""
     SCRIPT = Path(__file__)
     CLIENT = SCRIPT.with_name('gmailsync_client.json')
-    # If modifying these scopes, delete the file token.json.
+    # Optional `export GMAILSYNC_TOKEN=...' command saved after authentication
+    TOKEN = SCRIPT.with_name('gmailsync_token.sh')
     SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
     # Stay below the 6000 units per user per minute quota; Google recommends
     # batches of no more than 50 requests.
@@ -204,6 +208,23 @@ class GmailClient:
     MAX_ATTEMPTS = 8
 
     def __init__(self, userid: str = 'me'):
+        self.userid = userid
+        self.throttle = Throttle(self.QUOTA_PER_MIN, self.BATCH_SIZE * COST_GET)
+
+        # An access token can be reused (without refresh) until it expires
+        token = os.environ.get('GMAILSYNC_TOKEN')
+        if token:
+            self.service = build('gmail', 'v1', credentials=Credentials(token))
+            try:
+                self._execute(self.service.users().getProfile(userId=userid), COST_PROFILE)  # pylint: disable=no-member
+                return
+            except (HttpError, RefreshError):
+                print('GMAILSYNC_TOKEN is expired or invalid')
+
+        self.service = build('gmail', 'v1', credentials=self._authenticate())
+
+    def _authenticate(self) -> Credentials:
+        """Authenticate interactively, save the access token export command and return credentials"""
         if not self.CLIENT.exists():
             print(
                 'Please create and download an OAuth 2.0 Client for'
@@ -241,10 +262,15 @@ class GmailClient:
         print(authurl)
         authcode = getpass.getpass('Authorization code: ')
         flow.fetch_token(code=authcode)
-        self.service = build('gmail', 'v1', credentials=flow.credentials)
-        self.userid = userid
+        creds = flow.credentials
 
-        self.throttle = Throttle(self.QUOTA_PER_MIN, self.BATCH_SIZE * COST_GET)
+        fd = os.open(self.TOKEN, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, 'w', encoding='utf8') as fhd:
+            fhd.write(f'# Gmail API access token, expires {creds.expiry:%Y-%m-%d %H:%M} UTC\n'
+                      f'export GMAILSYNC_TOKEN={shlex.quote(creds.token)}\n')
+        print(f'To skip authentication until the access token expires, run: . {self.TOKEN}')
+        return creds
 
     def _execute(self, req, units: int):
         """Execute a request (or a whole batch), retrying transient errors forever"""

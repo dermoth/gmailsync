@@ -60,6 +60,11 @@ the moment.
 5. Run `./gmailsync.py`, open the printed link, authorize the app and paste
    the authorization code at the prompt.
 
+   The access token is then saved to `gmailsync_token.sh`; run
+   `. gmailsync_token.sh` to skip authentication on later runs until it
+   expires, after one hour. This token cannot be refreshed, so authenticate
+   interactively for syncs that may run longer.
+
 [console]: https://console.cloud.google.com/
 
 ## Sample queries
