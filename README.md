@@ -67,6 +67,70 @@ the moment.
 
 [console]: https://console.cloud.google.com/
 
+## Database schema
+
+Tables are created by `gmailsync.py` on the first run. An address is a unique
+(user, domain, display name) tuple, matched through the database collation
+(case and accent insensitive). Each message has exactly one primary sender:
+the single `From:` address, else the single `Sender:` address, else a
+placeholder (type `none`).
+
+```mermaid
+erDiagram
+    addresses ||--|| address_users : "id"
+    addresses ||--|| address_domains : "id"
+    addresses ||--|| address_names : "id"
+    messages ||--|{ messages_senders : "message_id"
+    addresses ||--o{ messages_senders : "sender_id"
+    messages ||--o{ messages_receivers : "message_id"
+    addresses ||--o{ messages_receivers : "receiver_id"
+    messages ||--o{ messages_labels : "message_id"
+    labels ||--o{ messages_labels : "label_id"
+
+    addresses {
+        int id PK "auto increment"
+    }
+    address_users {
+        int id PK, FK
+        varchar(253) user "local part"
+    }
+    address_domains {
+        int id PK, FK
+        varchar(253) domain
+    }
+    address_names {
+        int id PK, FK
+        varchar(16191) name "display name"
+    }
+    messages {
+        varchar(254) id PK "Gmail message id"
+        varchar(254) threadId
+        text snippet
+        int size "estimated size in bytes"
+        bigint recv "internal date, ms since epoch"
+    }
+    labels {
+        varchar(254) id PK "Gmail label id"
+        varchar(84) name
+        enum type "system, user"
+    }
+    messages_senders {
+        varchar(254) message_id PK, FK
+        int sender_id PK, FK
+        enum type PK "from, sender, none"
+        bool primary
+    }
+    messages_receivers {
+        varchar(254) message_id PK, FK
+        int receiver_id PK, FK
+        enum type PK "to, cc"
+    }
+    messages_labels {
+        varchar(254) message_id PK, FK
+        varchar(254) label_id PK, FK
+    }
+```
+
 ## Sample queries
 
 Sample report queries...
